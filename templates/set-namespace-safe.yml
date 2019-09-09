@@ -1,0 +1,13 @@
+---
+# loaded on 'root' level
+# Create the safe group within the namespace/safes policy
+- !policy
+  id: {{ NAMESPACE }}/safes
+
+  body:
+  - !group {{ SAFE_NAME }}
+
+# grant namespace safe to global safe consumers group
+- !grant
+  role: !group {{ CONSUMERS_GROUP }}
+  member: !group {{ NAMESPACE }}/safes/{{ SAFE_NAME }}

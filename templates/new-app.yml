@@ -1,0 +1,19 @@
+---
+# loaded on the '{{ NAMESPACE }}' level
+
+# create the app policy
+- !policy
+  id: {{ APP_NAME }}
+  annotations:
+    clitype: csasaappcsasa
+
+  body:
+  # this group will have read & execute permissions on all safes linked to this app
+  - !group safes
+  # this group repersents all of the authenticators for this app
+  - !group authns
+
+  # all hosts members of the hosts group will have access to the safes linked to this application
+  - !grant
+    role: !group safes
+    member: !group authns

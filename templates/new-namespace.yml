@@ -1,0 +1,35 @@
+---
+# policy loaded as 'root'
+# We create a group that is owner of the name space
+- !group ns_{{ NAMESPACE }}
+
+# Create the namespace policy subranch
+- !policy
+  id: {{ NAMESPACE }}
+  owner: !group ns_{{ NAMESPACE }}
+  annotations:
+    clitype: csasanamespacecsasa
+
+  body:
+  # read & execute permissions for all of the safes this namespace has access to
+  - !group safes
+  # this group will be the owner of every app
+  - !group apps
+  # All hosts created within this namespace will be a member of this group, this is global level group.
+  - !group hosts
+
+  # this group repersent all of the sevice hosts. These hosts are owners of the namespace.
+  - !group srv_hosts
+
+  # default service host
+  - !host srv
+  # grant srv host as owner of this policy branch
+  - !grant
+    role: !group srv_hosts
+    member: !host srv
+
+
+# link my srv_hosts group to the owners of the policy
+- !grant
+  role: !group ns_{{ NAMESPACE }}
+  member: !group {{ NAMESPACE }}/srv_hosts

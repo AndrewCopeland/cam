@@ -1,0 +1,4 @@
+---
+- !variable policy
+  annotations: 
+    cam: csasapolicyvariablecsasa

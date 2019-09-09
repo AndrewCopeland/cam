@@ -1,0 +1,28 @@
+---
+# Policy must be loaded at the 'root' level
+
+# This will configure the authn-iam service
+- !policy
+  id: conjur/authn-iam/{{ SERVICE_ID }}
+
+  body:
+  - !webservice
+
+  - !group clients
+
+  - !permit
+    role: !group clients
+    privilege: [ read, authenticate ]
+    resource: !webservice
+
+# This will create a group within the namespace that represents the authn-iam service created above
+- !policy
+  id: {{ NAMESPACE }}/authns/iam
+
+  body:
+  - !group {{ SERVICE_ID }}
+
+# This links the global authn-iam service to the namespace authn-iam service
+- !grant
+  role: !group conjur/authn-iam/{{ SERVICE_ID }}/clients
+  member: !group {{ NAMESPACE }}/authns/iam/{{ SERVICE_ID }}
