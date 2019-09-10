@@ -1,25 +1,38 @@
 ---
-# policy must be loaded on the '{{ NAMESPACE }}' level
+# policy must be loaded on the 'root' level
 
-# This will link the applications level authenticators to the namesapce level authenticator
-- !grant
-  role: !group authns/iam/{{ SERVICE_ID }}
-  member: !group {{ APP_NAME }}/authns
+# policy id needs to match the convention `conjur/authn-iam/<service ID>`
+# This will configure the authn-iam service
 
+# placeholders: SERVICE_ID, APP_NAME, AWS_ACCOUNT, IAM_ROLE_NAME
+- !policy
+  id: conjur/authn-iam/{{ SERVICE_ID }}
+  body:
+  - !webservice
+
+  - !group clients
+
+  - !permit
+    role: !group clients
+    privilege: [ read, authenticate ]
+    resource: !webservice
 
 # This will create the host in the application policy
 - !policy
   id: {{ APP_NAME }}
 
   body:
-  - !host {{ AWS_ACCCOUNT }}/{{ IAM_ROLE_NAME }}
+  - !host {{ AWS_ACCOUNT }}/{{ IAM_ROLE_NAME }}
 
   # granting the host as a member of the authns group
   - !grant
     role: !group authns
-    member: !host {{ AWS_ACCCOUNT }}/{{ IAM_ROLE_NAME }}
+    member: !host {{ AWS_ACCOUNT }}/{{ IAM_ROLE_NAME }}
 
 
-
+# Give host access to the iam authentication client
+- !grant
+  role: !group conjur/authn-iam/{{ SERVICE_ID }}/clients
+  member: !host {{ APP_NAME }}/{{ AWS_ACCOUNT }}/{{ IAM_ROLE_NAME }}
 
 

@@ -1,0 +1,62 @@
+# this policy represents an account
+# loaded in safe policy created above
+---
+# create account policy in safe
+- !policy
+  # The id should be the object name
+  id: Operator-System-Unix-SSH-root-unix.local
+  annotations:
+    cyberark: account
+
+  body:
+  - !group read-only
+  - !group write-only
+  - !group auditor
+  - !group read-write
+  
+  # I don't think account properties should not be stored as variables since it makes querying them difficult.
+  # Maybe have them be variables & annotations on the account policy
+  # This would allow us to fetch account properties with the ansible lookup plugin & make the account queryable by account properties
+  - &properties
+    # each variable within this policy should be the account properties or password
+    - !variable username
+    - !variable address
+    - !variable password
+    - !variable port
+
+  - !permit
+    role: !group read-only
+    privilege: [ read, execute ]
+    resource: *properties
+
+  - !permit
+    role: !group write-only
+    privilege: [ update ]
+    resource: *properties
+
+  - !permit
+    role: !group auditor
+    privilege: [ read ]
+    resource: *properties
+
+  - !permit
+    role: !group read-write
+    privilege: [ read, execute, update ]
+    resource: *properties
+
+# grant safe access to the account
+- !grant
+  role: !group Operator-System-Unix-SSH-root-unix.local/read-only
+  member: !group read-only
+
+- !grant
+  role: !group Operator-System-Unix-SSH-root-unix.local/auditor
+  member: !group auditor
+
+- !grant
+  role: !group Operator-System-Unix-SSH-root-unix.local/write-only
+  member: !group write-only
+
+- !grant
+  role: !group Operator-System-Unix-SSH-root-unix.local/read-write
+  member: !group read-write

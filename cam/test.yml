@@ -1,0 +1,41 @@
+---
+# policy must be loaded on the 'root' level
+
+# policy id needs to match the convention `conjur/authn-iam/<service ID>`
+# This will configure the authn-iam service
+
+# placeholders: SERVICE_ID, APP_NAME, AWS_ACCOUNT, IAM_ROLE_NAME
+- !policy
+  id: conjur/authn-iam/prod
+  body:
+  - !webservice
+
+  - !group clients
+
+  - !permit
+    role: !group clients
+    privilege: [ read, authenticate ]
+    resource: !webservice
+
+    role: !group clients
+# This will create the host in the application policy
+- !policy
+  id: DAP_MyApp
+
+  body:
+  - !host 7477466478/iam-role-name
+
+  # granting the host as a member of the authns group
+  - !grant
+    role: !group authns
+    member: !host 7477466478/iam-role-name
+
+
+# Give host access to the iam authentication client
+- !grant
+  role: !group conjur/authn-iam/prod/clients
+  member: !host DAP_MyApp/7477466478/iam-role-name
+
+
+
+

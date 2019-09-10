@@ -11,12 +11,13 @@
     clitype: csasanamespacecsasa
 
   body:
-  # read & execute permissions for all of the safes this namespace has access to
-  - !group safes
-  # this group will be the owner of every app
-  - !group apps
-  # All hosts created within this namespace will be a member of this group, this is global level group.
-  - !group hosts
+   # this policy will contain groups with the name of the safes the namespace can give applications access to
+  - !policy
+    id: safes
+
+  # this policy will contain groups that repersents specific authenticator service IDs
+  - !policy
+    id: authns
 
   # this group repersent all of the sevice hosts. These hosts are owners of the namespace.
   - !group srv_hosts

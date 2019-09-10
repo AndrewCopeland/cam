@@ -1,0 +1,12 @@
+- !policy
+  id: templates
+
+  body:
+  - !variable init-template.yml
+  - !variable policy-variable.yml
+  - !variable set-namespace-authn-k8s.yml
+  - !variable new-app.yml
+  - !variable set-app-authn-iam.yml
+  - !variable set-namespace-safe.yml
+  - !variable new-namespace.yml
+  - !variable set-namespace-authn-iam.yml

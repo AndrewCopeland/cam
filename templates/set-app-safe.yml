@@ -1,0 +1,5 @@
+# Give host access to the safe
+# required placeholders: CONSUMERS_GROUP HOST_ID
+- !grant
+  role: !group {{ CONSUMERS_GROUP }}
+  member: !group {{ APP_NAME }}/safes
