@@ -1,0 +1,44 @@
+- !policy
+  id: cyberark
+
+  body:
+  - !policy
+    id: service
+    
+    body:
+    - !variable pvwaURL
+    - !variable pvwaUsername
+    - !variable pvwaPassword
+
+
+export CONJUR_APPLIANCE_URL=https://conjur-master
+export AUTHN_IAM_SERVICE_ID=dev
+export CONJUR_AUTHN_LOGIN=host%2Faws-portal%2F622705945757%2Fubuntu-client-conjur-identity/authenticate
+export CONJUR_CERT_FILE=./conjur-conjur.pem
+export CONJUR_ACCOUNT=conjur
+
+url="https://conjur-master/authn-iam/prod/conjur/host%2Faws-portal%2F622705945757%2Fubuntu-client-conjur-identity/authenticate"
+curl --data $key -k $url
+
+
+import RestClient
+import json
+import requests
+from awsv4_signer import headers_for_signed_url
+import os
+
+signed_headers = headers_for_signed_url(os.environ['AWS_ACCESS_KEY_ID'], os.environ['AWS_SECRET_ACCESS_KEY'], os.environ['AWS_SESSION_TOKEN'], 'sts.amazonaws.com', 'Action=GetCallerIdentity&Version=2011-06-15', 'sts', 'us-west-2', 'GET')
+print(signed_headers)
+    
+response = requests.get('https://sts.amazonaws.com/?Action=GetCallerIdentity&Version=2011-06-15', headers=json.loads(signed_headers))
+
+    
+RestClient.get(aws_signed_url, headers = signed_headers)
+
+begin
+    RestClient.get(aws_signed_url, headers = aws_headers)
+rescue RestClient::ExceptionWithResponse => e
+    print("Verification of IAM identity Exception #{e.to_s}")
+end
+
+

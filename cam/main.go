@@ -307,21 +307,6 @@ func cyberarkListApplicationAuthenticationMethods(hostname string, token string,
 	return response, err
 }
 
-func getNewApplicationPolicy(client *conjurapi.Client, appName string) (io.Reader, error) {
-	// get the new-app template
-	templateName := "templates/new-app.yml"
-	log.Debug("new app template name: " + templateName)
-	templateContent, err := GetSecret(client, templateName)
-	if err != nil {
-		return nil, (fmt.Errorf("Failed to retrieve template '%s'", templateName))
-	}
-
-	// replace placeholder in the template
-	policyContent := strings.ReplaceAll(string(templateContent), "{{ APP_NAME }}", appName)
-	policyReader := bytes.NewReader([]byte(policyContent))
-	return policyReader, err
-}
-
 func getSetApplicationAuthnIamPolicy(client *conjurapi.Client, appName string, serviceID string, awsAccount string, iamRoleName string) (io.Reader, error) {
 	// get the new-app template
 	templateName := "templates/set-app-authn-iam.yml"
@@ -428,6 +413,21 @@ func getSafeConsumersGroup(client *conjurapi.Client, safeName string) (string, e
 	return consumersGroup, err
 }
 
+func getNewApplicationPolicy(client *conjurapi.Client, appName string) (io.Reader, error) {
+	// get the new-app template
+	templateName := "templates/new-app.yml"
+	log.Debug("new app template name: " + templateName)
+	templateContent, err := GetSecret(client, templateName)
+	if err != nil {
+		return nil, (fmt.Errorf("Failed to retrieve template '%s'", templateName))
+	}
+
+	// replace placeholder in the template
+	policyContent := strings.ReplaceAll(string(templateContent), "{{ APP_NAME }}", appName)
+	policyReader := bytes.NewReader([]byte(policyContent))
+	return policyReader, err
+}
+
 // ######################################
 // # login action
 // ######################################
@@ -479,7 +479,7 @@ func getCurrentSecretVersion(client *conjurapi.Client, variableID string) int {
 
 func GetSecretVersion(client *conjurapi.Client, variableID string, version int) ([]byte, error) {
 	variableID = fmt.Sprintf("%s?version=%d", variableID, version)
-	// fmt.Println(variableID)
+	//fmt.Println(variableID)
 	result, err := client.RetrieveSecret(variableID)
 	return result, err
 }
@@ -572,11 +572,12 @@ func setController(client *conjurapi.Client) {
 	var resource = os.Args[2]
 	id := os.Args[3]
 	fileName := os.Args[4]
+
 	value, err := readFile(fileName)
 
 	switch resource {
 	case "secret":
-		err = setSecret(client, id, value)
+		err = setSecret(client, id, []byte(fileName))
 	case "template":
 		err = setTemplate(client, id, value)
 	}
@@ -931,9 +932,8 @@ func initController(client *conjurapi.Client) {
 							if err != nil {
 								writeStdErrAndExit(fmt.Errorf("Failed to list safe members for app '%s'", appName))
 							}
-
 							if len(safes) == 0 {
-								writeStdErrAndExit(fmt.Errorf("Application '%s' is not a member of any Cyberark safes", appName))
+								writeStdErrAndExit(fmt.Errorf("Failed to find safes app '%s' is a member of", appName))
 							}
 
 							for _, safe := range safes {
@@ -953,7 +953,7 @@ func initController(client *conjurapi.Client) {
 								}
 
 								fmt.Println(fmt.Sprintf("Successfully granted application access to safe '%s' into conjur", safe))
-								fmt.Println("----------")
+								fmt.Println("-----------------")
 							}
 						} else {
 							writeStdErrAndExit(fmt.Errorf("Failed to load authenticator into conjur since it is not supported %s", conjurAuthnType))
@@ -1055,13 +1055,210 @@ func namespaceController(client *conjurapi.Client) {
 
 }
 
+// ######################################
+// # sync action
+// ######################################
+
+func getAllDAPApplications(pvwaURL string, token string) ([]string, error) {
+	jsonResponse, err := cyberarkListApplications(pvwaURL, token)
+	if err != nil {
+		return nil, err
+	}
+
+	// iterate through application and select applications that start with DAP_
+	// and create these applications within conjur
+	applications := jsonResponse["application"].([]interface{})
+	var dapApplications []string
+
+	for _, app := range applications {
+		appInterface := app.(map[string]interface{})
+		appName := appInterface["AppID"].(string)
+
+		if strings.HasPrefix(appName, "DAP_") {
+			dapApplications = append(dapApplications, appName)
+		}
+	}
+
+	return dapApplications, err
+
+}
+
+func getPathAuthenticatorsForApplication(pvwaURL string, token string, appName string) ([][]string, error) {
+	// list app authentication methods
+	appAuthns, err := cyberarkListApplicationAuthenticationMethods(pvwaURL, token, appName)
+	if err != nil {
+		writeStdErrAndExit(fmt.Errorf("Failed to list application authentation methods for '%s'", appName))
+	}
+
+	var authenticationMethods [][]string
+	authnMethods := appAuthns["authentication"].([]interface{})
+
+	for _, authMethod := range authnMethods {
+		authnInterface := authMethod.(map[string]interface{})
+		authnType := authnInterface["AuthType"].(string)
+		authnValue := authnInterface["AuthValue"].(string)
+
+		if authnType == "path" {
+			parts := strings.Split(authnValue, "/")
+			authenticationMethods = append(authenticationMethods, parts)
+		}
+	}
+
+	return authenticationMethods, err
+}
+
+func appendAuthnIAMPolicy(client *conjurapi.Client, appName string, serviceID string, awsAccount string, iamRoleName string) error {
+	policyReader, err := getSetApplicationAuthnIamPolicy(client, appName, serviceID, awsAccount, iamRoleName)
+	if err != nil {
+		return err
+	}
+	_, err = policyAppend(client, "root", policyReader, "", false)
+	if err != nil {
+		return fmt.Errorf("Failed to load set-app-authn-iam policy from template. %s", err)
+	}
+
+	return err
+}
+
+func grantApplicationAccessToSafe(client *conjurapi.Client, appName string, safeName string) error {
+	consumersGroup, err := getSafeConsumersGroup(client, safeName)
+	if err != nil {
+		writeStdErrAndExit(err)
+	}
+
+	policyReader, err := getSetAppSafePolicy(client, consumersGroup, appName)
+	if err != nil {
+		writeStdErrAndExit(err)
+	}
+
+	_, err = policyAppend(client, "root", policyReader, "", false)
+	if err != nil {
+		writeStdErrAndExit(fmt.Errorf("Failed to load set-app-safe policy from template. %s", err))
+	}
+
+	return err
+}
+
+func syncApplication(client *conjurapi.Client, pvwaURL string, token string, appName string) error {
+	// Get new app policy from template
+	policyReader, err := getNewApplicationPolicy(client, appName)
+	if err != nil {
+		return err
+	}
+	// load new-app template for this specific app
+	_, err = policyAppend(client, "root", policyReader, "", false)
+	if err != nil {
+		return errors.New("Failed to load new-namespace policy from template")
+	}
+	fmt.Println(fmt.Sprintf("Successfully loaded application '%s' into conjur", appName))
+
+	// now lets get all path authenticators for this specific application
+	appAuthenticators, err := getPathAuthenticatorsForApplication(pvwaURL, token, appName)
+	if err != nil {
+		return err
+	}
+
+	// Iterate through all application auth methods and load into conjur
+	for _, appAuthn := range appAuthenticators {
+		conjurAuthnType := appAuthn[0]
+		switch conjurAuthnType {
+		case "iam":
+			serviceID := appAuthn[1]
+			awsAccount := appAuthn[2]
+			iamRoleName := appAuthn[3]
+
+			// Load authn iam policy
+			err = appendAuthnIAMPolicy(client, appName, serviceID, awsAccount, iamRoleName)
+			if err != nil {
+				return err
+			}
+			fmt.Println(fmt.Sprintf("Successfully loaded application authenticator '%s' into conjur", strings.Join(appAuthn, "/")))
+
+			// now we need to get safes app user is member of
+			safes, err := cyberarkGetSafesUsersIsMemberOf(pvwaURL, token, appName)
+			if err != nil {
+				return fmt.Errorf("Failed to list safe members for app '%s'", appName)
+			}
+			if len(safes) == 0 {
+				return fmt.Errorf("Failed to find safes app '%s' is a member of", appName)
+			}
+
+			for _, safe := range safes {
+				err = grantApplicationAccessToSafe(client, appName, safe)
+				if err != nil {
+					return err
+				}
+				fmt.Println(fmt.Sprintf("Successfully granted application access to safe '%s' into conjur", safe))
+				fmt.Println("-----------------")
+			}
+
+		default:
+			return fmt.Errorf("Conjur authentication method '%s' is currently not supported", conjurAuthnType)
+		}
+	}
+
+	return err
+}
+
+func syncApplications(client *conjurapi.Client, pvwaURL string, pvwaUsername string, pvwaPassword string) {
+	token, err := cyberarkAuthenticate(pvwaURL, pvwaUsername, pvwaPassword)
+	if err != nil {
+		writeStdErrAndExit(err)
+	}
+
+	dapApplications, err := getAllDAPApplications(pvwaURL, token)
+	if err != nil {
+		writeStdErrAndExit(err)
+	}
+
+	for _, appName := range dapApplications {
+
+		err = syncApplication(client, pvwaURL, token, appName)
+		if err != nil {
+			writeStdErrAndExit(err)
+		}
+
+	}
+}
+
+func syncController(client *conjurapi.Client) {
+	syncAction := readMandatoryArg(1, "syncAction", "applications", "application")
+	pvwaURL, err := GetSecret(client, "cyberark/service/pvwaURL")
+	pvwaUsername, err := GetSecret(client, "cyberark/service/pvwaUsername")
+	pvwaPassword, err := GetSecret(client, "cyberark/service/pvwaPassword")
+
+	if err != nil {
+
+		writeStdErrAndExit(fmt.Errorf("Failed to retrieve cyberark service account from conjur. %s", err))
+	}
+
+	// Will want to support append, replace, delete
+	switch syncAction {
+	case "application":
+		appName := readMandatoryArg(2, "appName", "any valid DAP application name")
+
+		token, err := cyberarkAuthenticate(string(pvwaURL), string(pvwaUsername), string(pvwaPassword))
+		if err != nil {
+			writeStdErrAndExit(err)
+		}
+
+		err = syncApplication(client, string(pvwaURL), string(token), string(appName))
+		if err != nil {
+			writeStdErrAndExit(err)
+		}
+
+	case "applications":
+		syncApplications(client, string(pvwaURL), string(pvwaUsername), string(pvwaPassword))
+	}
+}
+
 // handleAction()
 // We have actions which is the first argument e.g. (get, set, policy, ..)
 // The controller should handle stdout, stderr and exit codes.
 // not much logic should be in this function
 // every action should have its own controller
 func handleAction() {
-	action := readMandatoryArg(0, "action", "get", "set", "list", "policy", "login", "init", "new-namespace", "namespace")
+	action := readMandatoryArg(0, "action", "get", "set", "list", "policy", "login", "init", "new-namespace", "namespace", "sync")
 
 	client, err := login()
 
@@ -1080,6 +1277,8 @@ func handleAction() {
 		newNamespaceController(client)
 	case "namespace":
 		namespaceController(client)
+	case "sync":
+		syncController(client)
 	case "login":
 		if err != nil {
 			writeStdErrAndExit(err)
