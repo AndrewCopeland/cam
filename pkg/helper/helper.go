@@ -62,23 +62,6 @@ func JsonPrettyPrintMapArray(response []map[string]interface{}) string {
 	return string(pprint)
 }
 
-// Should I put all my structs in one file, I could not reference it from camapi without getting an error
-type AppResponse struct {
-	Namespace      string
-	App            string
-	Safes          []string
-	Authenticators []string
-	ApiKey         string
-}
-
-func JsonPrettyPrintAppResponse(response AppResponse) string {
-	pprint, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-	return string(pprint)
-}
-
 // WriteStdErrAndExit write error to stderr and os.Exit(1)
 func WriteStdErrAndExit(err error) {
 	fmt.Fprintf(os.Stderr, "%s\n", err)
