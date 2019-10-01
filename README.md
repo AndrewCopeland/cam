@@ -15,7 +15,7 @@ Pre-built binaries and packages are available from GitHub releases
 
 #### Windows
 
-[Install](https://github.com/AndrewCopeland/cam/releases/download/v0.0.1/cam.exe)
+Currently not supported
 
 
 #### Linux (Debian and Red Hat flavors)
