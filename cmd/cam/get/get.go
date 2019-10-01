@@ -108,10 +108,9 @@ func namespaces(client *conjurapi.Client) error {
 }
 
 func namespace(client *conjurapi.Client) error {
-	// filter := helper.NewResourceFilter("variable", "template")
-	// list(client, filter)
 	namespaceName := ""
-	// If no namespace was provided fund the current namespace
+
+	// If no namespace was provided get the current namespace
 	if golf.Arg(2) == "" {
 		namespaceName, _ = camapi.GetCurrentNamespace()
 		if namespaceName == "" {
@@ -121,51 +120,14 @@ func namespace(client *conjurapi.Client) error {
 		namespaceName = helper.ReadMandatoryArg(2, "namespaceName", help.Get, "any valid namespace")
 	}
 
-	// get the authenticators within the namespace
-	filter := helper.NewResourceFilter("group", "authn")
-	authns, err := camapi.List(client, filter)
+	namespaceInfo, err := camapi.GetNamespace(client, namespaceName)
 	if err != nil {
-		return fmt.Errorf("Failed to retrieve aurthns: %s", err)
-	}
-	fmt.Println("----- AUTHNS -----")
-	for _, authn := range authns {
-		if strings.Contains(authn, ":"+namespaceName) {
-			parts := strings.Split(authn, "/")
-			authnType := parts[len(parts)-2]
-			authnName := parts[len(parts)-1]
-			fmt.Println("- " + authnType + "/" + authnName)
-		}
+		return fmt.Errorf("Failed to get information about namespace '%s'. %s", namespaceInfo.Name, err)
 	}
 
-	// get the safes within the namespace
-	filter = helper.NewResourceFilter("group", "safe")
-	safes, err := camapi.List(client, filter)
-	if err != nil {
-		return fmt.Errorf("Failed to retrieve safes: %s", err)
-	}
-	fmt.Println("----- SAFES -----")
-	for _, safe := range safes {
-		if strings.Contains(safe, ":"+namespaceName) {
-			parts := strings.Split(safe, "/")
-			safeName := parts[len(parts)-1]
-			fmt.Println("- " + safeName)
-		}
-	}
+	pprint, _ := json.MarshalIndent(namespaceInfo, "", "  ")
+	fmt.Println(string(pprint))
 
-	// get the apps within the namespace
-	filter = helper.NewResourceFilter("policy", "app")
-	apps, err := camapi.List(client, filter)
-	if err != nil {
-		return fmt.Errorf("Failed to retrieve apps: %s", err)
-	}
-	fmt.Println("----- APPS -----")
-	for _, app := range apps {
-		if strings.Contains(app, ":"+namespaceName) {
-			parts := strings.Split(app, "/")
-			appName := parts[len(parts)-1]
-			fmt.Println("- " + appName)
-		}
-	}
 	return err
 
 }
@@ -237,7 +199,7 @@ func authns(client *conjurapi.Client) error {
 }
 
 func Controller(client *conjurapi.Client) {
-	var resource = helper.ReadMandatoryArg(1, "resource", help.Get, "secret", "template", "secrets", "templates", "resources", "namespaces", "namespace", "apps", "app", "safes", "authns")
+	var resource = helper.ReadMandatoryArg(1, "resource", help.Get, "secret", "template", "secrets", "templates", "resources", "namespaces", "namespace", "full-namespace", "apps", "app", "safes", "authns")
 	var response []byte
 	var err error
 

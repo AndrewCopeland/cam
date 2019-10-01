@@ -661,6 +661,70 @@ func GetApp(client *conjurapi.Client, namespaceName string, appName string) (App
 	return appResponse, err
 }
 
+type NamespaceResponse struct {
+	Name           string
+	Safes          []string
+	Authenticators []string
+	Apps           []string
+}
+
+func GetNamespace(client *conjurapi.Client, namespaceName string) (NamespaceResponse, error) {
+	namespaceResponse := NamespaceResponse{Name: namespaceName}
+
+	// make sure namespace actually exists
+	namespaceID := helper.MakeFullID(client, "policy", namespaceName)
+	if !client.ResourceExists(namespaceID) {
+		return namespaceResponse, fmt.Errorf("Namespace '%s' does not exists or you do not have the correct permissions", namespaceName)
+	}
+
+	// get the authenticators within the namespace
+	filter := helper.NewResourceFilter("group", "authn")
+	authns, err := List(client, filter)
+	if err != nil {
+		return namespaceResponse, fmt.Errorf("Failed to retrieve aurthns: %s", err)
+	}
+
+	for _, authn := range authns {
+		if strings.Contains(authn, ":"+namespaceName) {
+			parts := strings.Split(authn, "/")
+			authnType := parts[len(parts)-2]
+			authnName := parts[len(parts)-1]
+			namespaceResponse.Authenticators = append(namespaceResponse.Authenticators, authnType+"/"+authnName)
+		}
+	}
+
+	// get the safes within the namespace
+	filter = helper.NewResourceFilter("group", "safe")
+	safes, err := List(client, filter)
+	if err != nil {
+		return namespaceResponse, fmt.Errorf("Failed to retrieve safes: %s", err)
+	}
+
+	for _, safe := range safes {
+		if strings.Contains(safe, ":"+namespaceName) {
+			parts := strings.Split(safe, "/")
+			safeName := parts[len(parts)-1]
+			namespaceResponse.Safes = append(namespaceResponse.Safes, safeName)
+		}
+	}
+
+	// get the apps within the namespace
+	filter = helper.NewResourceFilter("policy", "app")
+	apps, err := List(client, filter)
+	if err != nil {
+		return namespaceResponse, fmt.Errorf("Failed to retrieve apps: %s", err)
+	}
+	for _, app := range apps {
+		if strings.Contains(app, ":"+namespaceName) {
+			parts := strings.Split(app, "/")
+			appName := parts[len(parts)-1]
+			namespaceResponse.Apps = append(namespaceResponse.Apps, appName)
+		}
+	}
+
+	return namespaceResponse, err
+}
+
 func SetAppSafe(client *conjurapi.Client, namespaceName string, appName string, safeName string) error {
 	// make sure safe exists
 	authnID := helper.MakeFullID(client, "group", namespaceName+"/safes/"+safeName)
