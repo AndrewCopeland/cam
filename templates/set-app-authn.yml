@@ -1,0 +1,16 @@
+---
+# policy must be loaded on the '{{ NAMESPACE }}' level
+
+# This will create the host in the application policy
+- !policy
+  id: {{ APP_NAME }}
+
+  body:
+  - !host
+
+  # granting the host as a member of the authns group
+  # the authns group has access to all of the safes set for this application
+  - !grant
+    role: !group authns
+    member: !host
+

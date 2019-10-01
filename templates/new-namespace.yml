@@ -1,5 +1,6 @@
 ---
 # policy loaded as 'root'
+# placeholders are: NAMESPACE
 # We create a group that is owner of the name space
 - !group ns_{{ NAMESPACE }}
 
@@ -34,3 +35,8 @@
 - !grant
   role: !group ns_{{ NAMESPACE }}
   member: !group {{ NAMESPACE }}/srv_hosts
+
+# Allow the namespace to read al of the template variables
+- !grant
+  role: !group templates/namespace
+  member: !group ns_{{ NAMESPACE }}

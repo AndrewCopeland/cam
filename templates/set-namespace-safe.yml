@@ -5,7 +5,10 @@
   id: {{ NAMESPACE }}/safes
 
   body:
-  - !group {{ SAFE_NAME }}
+  - !group
+    id: {{ SAFE_NAME }}
+    annotations:
+      cam: csasasafecsasa
 
 # grant namespace safe to global safe consumers group
 - !grant

@@ -1,0 +1,22 @@
+---
+# policy must be loaded on the '{{ NAMESPACE }}' level
+
+# This will create the host in the application policy
+- !policy
+  id: {{ APP_NAME }}
+
+  body:
+  - !host {{ AWS_ACCOUNT }}/{{ IAM_ROLE_NAME }}
+
+  # granting host the ability to authenticate with an iam authenticator
+  - !grant
+    role: !group authns/k8s/{{ SERVICE_ID }}
+    member: !host {{ AWS_ACCOUNT }}/{{ IAM_ROLE_NAME }}
+
+  # granting the host as a member of the authns group
+  # the authns group has access to all of the safes set for this application
+  - !grant
+    role: !group authns
+    member: !host {{ AWS_ACCOUNT }}/{{ IAM_ROLE_NAME }}
+
+

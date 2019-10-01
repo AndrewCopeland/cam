@@ -1,5 +1,7 @@
+---
+# policy loaded on the {{ NAMESPACE }} level
 # Give host access to the safe
-# required placeholders: CONSUMERS_GROUP HOST_ID
+# required placeholders: SAFE_NAME APP_NAME
 - !grant
-  role: !group {{ CONSUMERS_GROUP }}
+  role: !group safes/{{ SAFE_NAME }}
   member: !group {{ APP_NAME }}/safes

@@ -1,43 +1,14 @@
 ---
 # policy loaded on the 'root' level
-
-# This policy initializes the authentication service for the k8s cluster
-- !policy
-  id: conjur/authn-k8s/{{ SERVICE_ID }}
-  annotations:
-    description: Authenticator defs for the Conjur cluster 
-  body:
-  - !webservice
-    annotations:
-      description: authn service for cluster
-
-  - !group clients
-
-  - !permit
-    role: !group clients
-    privilege: [ read, authenticate ]
-    resource: !webservice
-
-  - !policy
-    id: ca 
-    body:
-    - !variable
-      id: cert
-      annotations:
-        description: CA cert for Kubernetes Pods.
-    - !variable
-      id: key
-      annotations:
-        description: CA key for Kubernetes Pods.
-
-# we should probably prompt for cert and key so user knows that they need to provide a cert & key
-
 # This will create a group within the namespace that represents the authn-k8s service created above
 - !policy
   id: {{ NAMESPACE }}/authns/k8s
 
   body:
-  - !group {{ SERVICE_ID }}
+  - !group 
+    id: {{ SERVICE_ID }}
+    annotations:
+      cam: csasaauthncsasa
 
 # This links the global authn-iam service to the namespace authn-iam service
 - !grant

@@ -17,3 +17,5 @@
   - !grant
     role: !group safes
     member: !group authns
+
+  - !variable api_key

@@ -1,0 +1,5 @@
+- !delete
+  record: !policy hsbcTeam
+
+- !delete
+  record: !policy hsbcTeam/authns/iam

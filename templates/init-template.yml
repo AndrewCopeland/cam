@@ -1,12 +1,30 @@
+- !group default-templates
+
 - !policy
   id: templates
+  owner: !group default-templates
 
   body:
-  - !variable init-template.yml
-  - !variable policy-variable.yml
-  - !variable set-namespace-authn-k8s.yml
-  - !variable new-app.yml
-  - !variable set-app-authn-iam.yml
-  - !variable set-namespace-safe.yml
-  - !variable new-namespace.yml
-  - !variable set-namespace-authn-iam.yml
+  - &templates
+    - !variable init-template.yml
+    - !variable policy-variable.yml
+    - !variable set-namespace-authn-k8s.yml
+    - !variable new-app.yml
+    - !variable set-app-authn-iam.yml
+    - !variable set-namespace-safe.yml
+    - !variable new-namespace.yml
+    - !variable set-namespace-authn-iam.yml
+    - !variable enable-authn-iam.yml
+    - !variable enable-authn-k8s.yml
+    - !variable set-app-safe.yml
+    - !variable set-app-authn.yml
+
+  - !group namespace
+
+  - !permit
+    role: !group namespace
+    resource: *templates
+    privilege: [ read, execute ]
+    
+
+
