@@ -1,3 +1,5 @@
+Get or list resource(s) or items from conjur.
+
 ## Help
 ```
 SYNOPSIS
