@@ -1,4 +1,4 @@
-Enable an authentication service within DAP. This authentication service can then applied to a namespace which in turn can then be applied to an application within that namespace.
+Enable an authentication service within DAP. This authentication service can be applied to a namespace which in turn can then be applied to an application within that namespace.
 
 ## Help
 ```
