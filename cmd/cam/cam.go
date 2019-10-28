@@ -11,6 +11,8 @@ import (
 	"github.com/AndrewCopeland/cam/cmd/cam/namespace"
 	"github.com/AndrewCopeland/cam/cmd/cam/newapp"
 	"github.com/AndrewCopeland/cam/cmd/cam/newnamespace"
+	"github.com/AndrewCopeland/cam/cmd/cam/newsafe"
+	"github.com/AndrewCopeland/cam/cmd/cam/newsecret"
 	"github.com/AndrewCopeland/cam/cmd/cam/policy"
 	"github.com/AndrewCopeland/cam/cmd/cam/set"
 	"github.com/AndrewCopeland/cam/cmd/cam/sync"
@@ -21,7 +23,7 @@ import (
 )
 
 func handleAction() {
-	action := helper.ReadMandatoryArg(0, "action", help.Action, "init", "login", "get", "set", "enable", "sync", "new-namespace", "namespace", "new-app", "policy")
+	action := helper.ReadMandatoryArg(0, "action", help.Action, "init", "login", "get", "set", "enable", "sync", "new-namespace", "namespace", "new-app", "new-safe", "new-secret", "policy")
 
 	// login & init is a special use case
 	if action == "login" {
@@ -52,6 +54,10 @@ func handleAction() {
 		namespace.Controller(client)
 	case "new-app":
 		newapp.Controller(client)
+	case "new-safe":
+		newsafe.Controller(client)
+	case "new-secret":
+		newsecret.Controller(client)
 	case "policy":
 		policy.Controller(client)
 	}

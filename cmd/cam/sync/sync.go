@@ -208,7 +208,11 @@ func templates(client *conjurapi.Client) ([]string, error) {
 	}
 
 	// load the base policy
-	templatePolicy := bytes.NewReader([]byte("- !group default-templates\r\n- !policy \r\n  id: templates\r\n"))
+	content, err := helper.ReadFile(folder + "/init-template.yml")
+	if err != nil {
+		return nil, fmt.Errorf("Failed to read variable content file '%s'. %s", "init-template.yml", err)
+	}
+	templatePolicy := bytes.NewReader(content)
 	_, err = camapi.Append(client, "root", templatePolicy, "", false)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load template policy. %s", err)

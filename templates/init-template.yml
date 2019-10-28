@@ -18,6 +18,7 @@
     - !variable enable-authn-k8s.yml
     - !variable set-app-safe.yml
     - !variable set-app-authn.yml
+    - !variable new-safe.yml
 
   - !group namespace
 

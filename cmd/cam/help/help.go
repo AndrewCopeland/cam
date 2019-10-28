@@ -27,6 +27,8 @@ COMMANDS
     new-namespace - Create a new namespace within DAP
     namespace     - Open a namespace
     new-app       - Create an application within a namespace
+    new-safe      - Create a new safe within a namespace
+    new-secret    - Create a new secret within a safe
     policy        - Append, replace, delete or rollback a DAP policy (recommended for advanced DAP users)
 `, Version)
 
@@ -101,4 +103,12 @@ COMMANDS
     authn     - Set api key authentcation for an app
     authn-iam - Set iam authentication service for an app
     authn-k8s - Set k8s authentication service for an app
+`
+
+var NewSecret string = `SYNOPSIS
+    cam new-secret SAFE_NAME SECRET_NAME SECRET_VALUE
+`
+
+var NewSafe string = `SYNOPSIS
+    cam new-safe SAFE_NAME
 `

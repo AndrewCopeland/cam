@@ -36,7 +36,7 @@
   role: !group ns_{{ NAMESPACE }}
   member: !group {{ NAMESPACE }}/srv_hosts
 
-# Allow the namespace to read al of the template variables
+# Allow the namespace to read all of the template variables
 - !grant
   role: !group templates/namespace
   member: !group ns_{{ NAMESPACE }}

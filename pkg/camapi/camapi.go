@@ -217,6 +217,15 @@ func GetSafes(client *conjurapi.Client) ([]string, error) {
 			safes = append(safes, safe)
 		}
 	}
+
+	safeFilter := helper.NewResourceFilter("group", "safe")
+	resources, err := List(client, safeFilter)
+	for _, resource := range resources {
+		resourceID := strings.SplitN(resource, ":", 3)[2]
+		safe := strings.SplitN(resourceID, "/", 3)[2]
+		safes = append(safes, safe)
+	}
+
 	return safes, err
 }
 
@@ -313,6 +322,23 @@ func SetNamespaceSafe(client *conjurapi.Client, namespaceName string, safeName s
 		return fmt.Errorf("Failed to append set namespace safe policy. %s", err)
 	}
 
+	return err
+}
+
+func NewSecret(client *conjurapi.Client, safeName string, secretName string, secretValue string) error {
+	secretPolicy := bytes.NewReader([]byte(fmt.Sprintf("- !variable %s", secretName)))
+	namespace, err := GetCurrentNamespace()
+	if err != nil {
+		return err
+	}
+	policyBranch := namespace + "/safes/" + safeName
+
+	_, err = Append(client, policyBranch, secretPolicy, "", true)
+	if err != nil {
+		return fmt.Errorf("Failed to create secret variable. %s", err)
+	}
+
+	err = client.AddSecret(policyBranch+"/"+secretName, secretValue)
 	return err
 }
 
@@ -470,6 +496,31 @@ func NewApp(client *conjurapi.Client, appName string) error {
 	return err
 }
 
+func NewSafe(client *conjurapi.Client, safeName string) error {
+	namespaceName, err := GetCurrentNamespace()
+	if err != nil {
+		return err
+	}
+
+	// Retrieve the template
+	templateID := "templates/new-safe.yml"
+	templateContent, err := GetSecret(client, templateID)
+	if err != nil {
+		return fmt.Errorf("Failed to retrieve template '%s'. %s", templateID, err)
+	}
+
+	// Create new safe with the appropriate name and permissions
+	// Owner group will be used to give apps access to safes recurively
+	policyContent := bytes.NewReader([]byte(strings.ReplaceAll(string(templateContent), "{{ SAFE_NAME }}", safeName)))
+	res, err := Append(client, namespaceName+"/safes", policyContent, "", true)
+	fmt.Println(helper.JsonPrettyPrint(res))
+	if err != nil {
+		return fmt.Errorf("Failed to append safe policy. %s", err)
+	}
+
+	return err
+}
+
 func OpenNamespace(client *conjurapi.Client, namespaceName string) error {
 	// Make sure namespace exists
 	err := FindNamespace(client, namespaceName)
@@ -508,7 +559,7 @@ func NewNamespace(client *conjurapi.Client, namespaceName string) error {
 
 	// Replace the placeholders and load the new-namespace policy
 	policyContent := bytes.NewReader([]byte(strings.ReplaceAll(string(templateContent), "{{ NAMESPACE }}", namespaceName)))
-	res, err := Append(client, "root", policyContent, "", false)
+	res, err := Append(client, "root", policyContent, "", true)
 	fmt.Println(helper.JsonPrettyPrint(res))
 	if err != nil {
 		return fmt.Errorf("Failed to append namespace policy. %s", err)

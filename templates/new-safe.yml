@@ -1,0 +1,11 @@
+---
+# loaded on the '{{ NAMESPACE }}/safes' level
+- !group 
+  id: {{ SAFE_NAME }}
+  annotations:
+    clitype: csasasafecsasa
+
+# create the safe policy within the 'safes' policy
+- !policy
+  id: {{ SAFE_NAME }}
+  owner: !group {{ SAFE_NAME }}
