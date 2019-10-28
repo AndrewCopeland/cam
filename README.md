@@ -85,5 +85,7 @@ COMMANDS
     new-namespace - Create a new namespace within DAP
     namespace     - Open a namespace
     new-app       - Create an application within a namespace
-    policy        - Append, replace, delete or rollback a DAP policy (recommended for advanced DAP users)
+    new-safe      - Create a new safe within a namespace
+    new-secret    - Create a new secret within a safe
+    policy        - App
 ```
